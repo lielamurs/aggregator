@@ -9,14 +9,27 @@ import (
 )
 
 type Config struct {
-	Server  ServerConfig  `json:"server"`
-	Banks   BanksConfig   `json:"banks"`
-	Logging LoggingConfig `json:"logging"`
+	Server   ServerConfig   `json:"server"`
+	Database DatabaseConfig `json:"database"`
+	Banks    BanksConfig    `json:"banks"`
+	Logging  LoggingConfig  `json:"logging"`
 }
 
 type ServerConfig struct {
 	Port string `json:"port" env:"SERVER_PORT"`
 	Host string `json:"host" env:"SERVER_HOST"`
+}
+
+type DatabaseConfig struct {
+	Host         string `json:"host" env:"DB_HOST"`
+	Port         string `json:"port" env:"DB_PORT"`
+	User         string `json:"user" env:"DB_USER"`
+	Password     string `json:"password" env:"DB_PASSWORD"`
+	Name         string `json:"name" env:"DB_NAME"`
+	SSLMode      string `json:"ssl_mode" env:"DB_SSLMODE"`
+	MaxIdleConns int    `json:"max_idle_conns" env:"DB_MAX_IDLE_CONNS"`
+	MaxOpenConns int    `json:"max_open_conns" env:"DB_MAX_OPEN_CONNS"`
+	MaxLifetime  int    `json:"max_lifetime" env:"DB_MAX_LIFETIME"`
 }
 
 type BanksConfig struct {
@@ -39,9 +52,7 @@ type LoggingConfig struct {
 	Format string `json:"format" env:"LOG_FORMAT"`
 }
 
-// Load loads configuration from environment variables
 func Load() (*Config, error) {
-	// Try to load .env file if it exists
 	if err := godotenv.Load(); err != nil {
 		logrus.Debug("No .env file found, using environment variables")
 	}
@@ -50,6 +61,17 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port: getEnvOrDefault("SERVER_PORT", "8080"),
 			Host: getEnvOrDefault("SERVER_HOST", "localhost"),
+		},
+		Database: DatabaseConfig{
+			Host:         getEnvOrDefault("DB_HOST", "localhost"),
+			Port:         getEnvOrDefault("DB_PORT", "5432"),
+			User:         getEnvOrDefault("DB_USER", "postgres"),
+			Password:     getEnvOrDefault("DB_PASSWORD", ""),
+			Name:         getEnvOrDefault("DB_NAME", "aggregator"),
+			SSLMode:      getEnvOrDefault("DB_SSLMODE", "disable"),
+			MaxIdleConns: getEnvIntOrDefault("DB_MAX_IDLE_CONNS", 10),
+			MaxOpenConns: getEnvIntOrDefault("DB_MAX_OPEN_CONNS", 100),
+			MaxLifetime:  getEnvIntOrDefault("DB_MAX_LIFETIME", 3600),
 		},
 		Banks: BanksConfig{
 			FastBank: FastBankConfig{
