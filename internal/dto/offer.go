@@ -21,7 +21,6 @@ type Offer struct {
 type OfferStatus string
 
 const (
-	OfferStatusPending  OfferStatus = "PENDING"
 	OfferStatusApproved OfferStatus = "APPROVED"
 	OfferStatusRejected OfferStatus = "REJECTED"
 )

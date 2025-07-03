@@ -17,7 +17,7 @@ type ApplicationRequest struct {
 	Dependents      int     `json:"dependents" validate:"min=0"`
 }
 
-type Application struct {
+type CustomerApplication struct {
 	ID              uuid.UUID          `json:"id"`
 	CustomerData    ApplicationRequest `json:"customerData"`
 	Status          ApplicationStatus  `json:"status"`
@@ -33,7 +33,6 @@ const (
 	StatusPending    ApplicationStatus = "PENDING"
 	StatusProcessing ApplicationStatus = "PROCESSING"
 	StatusCompleted  ApplicationStatus = "COMPLETED"
-	StatusFailed     ApplicationStatus = "FAILED"
 )
 
 type ApplicationResponse struct {
@@ -54,4 +53,10 @@ type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`
 	Code    string `json:"code,omitempty"`
+}
+
+type BankResult struct {
+	BankName string
+	Offer    *Offer
+	Err      error
 }

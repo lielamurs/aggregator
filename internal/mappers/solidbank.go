@@ -7,52 +7,39 @@ import (
 	"github.com/lielamurs/aggregator/internal/dto"
 )
 
-func ToSolidBankRequest(ar *dto.ApplicationRequest) dto.SolidBankApplicationRequest {
-	if ar == nil {
-		return dto.SolidBankApplicationRequest{}
-	}
-
-	return dto.SolidBankApplicationRequest{
-		Phone:           ar.Phone,
-		Email:           ar.Email,
-		MonthlyIncome:   ar.MonthlyIncome,
-		MonthlyExpenses: ar.MonthlyExpenses,
-		MaritalStatus:   ar.MaritalStatus,
-		AgreeToBeScored: ar.AgreeToBeScored,
-		Amount:          ar.Amount,
+func ToSolidBankRequestFromApplicationRequest(req dto.ApplicationRequest) *dto.SolidBankApplicationRequest {
+	return &dto.SolidBankApplicationRequest{
+		Phone:           req.Phone,
+		Email:           req.Email,
+		MonthlyIncome:   req.MonthlyIncome,
+		MonthlyExpenses: req.MonthlyExpenses,
+		MaritalStatus:   req.MaritalStatus,
+		AgreeToBeScored: req.AgreeToBeScored,
+		Amount:          req.Amount,
 	}
 }
 
-func SolidBankOfferToOffer(sbo *dto.SolidBankOffer, bankName string) dto.Offer {
-	if sbo == nil {
-		return dto.Offer{
-			ID:        uuid.New(),
-			BankName:  bankName,
-			Status:    dto.OfferStatusRejected,
-			CreatedAt: time.Now(),
-		}
+func ToOfferFromSolidBankApplication(app dto.SolidBankApplication, bankName string) *dto.Offer {
+	if app.Status != "PROCESSED" {
+		return nil
 	}
 
-	return dto.Offer{
-		ID:                   uuid.New(),
-		BankName:             bankName,
-		MonthlyPaymentAmount: sbo.MonthlyPaymentAmount,
-		TotalRepaymentAmount: sbo.TotalRepaymentAmount,
-		NumberOfPayments:     sbo.NumberOfPayments,
-		AnnualPercentageRate: sbo.AnnualPercentageRate,
-		FirstRepaymentDate:   sbo.FirstRepaymentDate,
-		Status:               dto.OfferStatusApproved,
-		CreatedAt:            time.Now(),
-	}
-}
-
-func SolidBankApplicationToOffers(app *dto.SolidBankApplication, bankName string) []dto.Offer {
-	var offers []dto.Offer
-
-	if app != nil && app.Offer != nil {
-		offer := SolidBankOfferToOffer(app.Offer, bankName)
-		offers = append(offers, offer)
+	offer := &dto.Offer{
+		ID:        uuid.New(),
+		BankName:  bankName,
+		CreatedAt: time.Now(),
 	}
 
-	return offers
+	if app.Offer != nil {
+		offer.Status = dto.OfferStatusApproved
+		offer.MonthlyPaymentAmount = &app.Offer.MonthlyPaymentAmount
+		offer.TotalRepaymentAmount = &app.Offer.TotalRepaymentAmount
+		offer.NumberOfPayments = &app.Offer.NumberOfPayments
+		offer.AnnualPercentageRate = &app.Offer.AnnualPercentageRate
+		offer.FirstRepaymentDate = &app.Offer.FirstRepaymentDate
+	} else {
+		offer.Status = dto.OfferStatusRejected
+	}
+
+	return offer
 }

@@ -7,52 +7,39 @@ import (
 	"github.com/lielamurs/aggregator/internal/dto"
 )
 
-func ToFastBankRequest(ar *dto.ApplicationRequest) dto.FastBankApplicationRequest {
-	if ar == nil {
-		return dto.FastBankApplicationRequest{}
-	}
-
-	return dto.FastBankApplicationRequest{
-		PhoneNumber:              ar.Phone,
-		Email:                    ar.Email,
-		MonthlyIncomeAmount:      ar.MonthlyIncome,
-		MonthlyCreditLiabilities: ar.MonthlyExpenses,
-		Dependents:               ar.Dependents,
-		AgreeToDataSharing:       ar.AgreeToBeScored,
-		Amount:                   ar.Amount,
+func ToFastBankRequestFromApplicationRequest(req dto.ApplicationRequest) *dto.FastBankApplicationRequest {
+	return &dto.FastBankApplicationRequest{
+		PhoneNumber:              req.Phone,
+		Email:                    req.Email,
+		MonthlyIncomeAmount:      req.MonthlyIncome,
+		MonthlyCreditLiabilities: req.MonthlyExpenses,
+		Dependents:               req.Dependents,
+		AgreeToDataSharing:       req.AgreeToBeScored,
+		Amount:                   req.Amount,
 	}
 }
 
-func FastBankOfferToOffer(fbo *dto.FastBankOffer, bankName string) dto.Offer {
-	if fbo == nil {
-		return dto.Offer{
-			ID:        uuid.New(),
-			BankName:  bankName,
-			Status:    dto.OfferStatusRejected,
-			CreatedAt: time.Now(),
-		}
+func ToOfferFromFastBankApplication(app dto.FastBankApplication, bankName string) *dto.Offer {
+	if app.Status != "PROCESSED" {
+		return nil
 	}
 
-	return dto.Offer{
-		ID:                   uuid.New(),
-		BankName:             bankName,
-		MonthlyPaymentAmount: fbo.MonthlyPaymentAmount,
-		TotalRepaymentAmount: fbo.TotalRepaymentAmount,
-		NumberOfPayments:     fbo.NumberOfPayments,
-		AnnualPercentageRate: fbo.AnnualPercentageRate,
-		FirstRepaymentDate:   fbo.FirstRepaymentDate,
-		Status:               dto.OfferStatusApproved,
-		CreatedAt:            time.Now(),
-	}
-}
-
-func FastBankApplicationToOffers(app *dto.FastBankApplication, bankName string) []dto.Offer {
-	var offers []dto.Offer
-
-	if app != nil && app.Offer != nil {
-		offer := FastBankOfferToOffer(app.Offer, bankName)
-		offers = append(offers, offer)
+	offer := &dto.Offer{
+		ID:        uuid.New(),
+		BankName:  bankName,
+		CreatedAt: time.Now(),
 	}
 
-	return offers
+	if app.Offer != nil {
+		offer.Status = dto.OfferStatusApproved
+		offer.MonthlyPaymentAmount = &app.Offer.MonthlyPaymentAmount
+		offer.TotalRepaymentAmount = &app.Offer.TotalRepaymentAmount
+		offer.NumberOfPayments = &app.Offer.NumberOfPayments
+		offer.AnnualPercentageRate = &app.Offer.AnnualPercentageRate
+		offer.FirstRepaymentDate = &app.Offer.FirstRepaymentDate
+	} else {
+		offer.Status = dto.OfferStatusRejected
+	}
+
+	return offer
 }

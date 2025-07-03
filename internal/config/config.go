@@ -38,13 +38,17 @@ type BanksConfig struct {
 }
 
 type FastBankConfig struct {
-	BaseURL string `json:"base_url" env:"FASTBANK_BASE_URL"`
-	Timeout int    `json:"timeout" env:"FASTBANK_TIMEOUT"`
+	BaseURL      string `json:"base_url" env:"FASTBANK_BASE_URL"`
+	Timeout      int    `json:"timeout" env:"FASTBANK_TIMEOUT"`
+	MaxAttempts  int    `json:"max_attempts" env:"FASTBANK_MAX_ATTEMPTS"`
+	PollInterval int    `json:"poll_interval" env:"FASTBANK_POLL_INTERVAL"`
 }
 
 type SolidBankConfig struct {
-	BaseURL string `json:"base_url" env:"SOLIDBANK_BASE_URL"`
-	Timeout int    `json:"timeout" env:"SOLIDBANK_TIMEOUT"`
+	BaseURL      string `json:"base_url" env:"SOLIDBANK_BASE_URL"`
+	Timeout      int    `json:"timeout" env:"SOLIDBANK_TIMEOUT"`
+	MaxAttempts  int    `json:"max_attempts" env:"SOLIDBANK_MAX_ATTEMPTS"`
+	PollInterval int    `json:"poll_interval" env:"SOLIDBANK_POLL_INTERVAL"`
 }
 
 type LoggingConfig struct {
@@ -75,12 +79,16 @@ func Load() (*Config, error) {
 		},
 		Banks: BanksConfig{
 			FastBank: FastBankConfig{
-				BaseURL: getEnvOrDefault("FASTBANK_BASE_URL", ""),
-				Timeout: getEnvIntOrDefault("FASTBANK_TIMEOUT", 30),
+				BaseURL:      getEnvOrDefault("FASTBANK_BASE_URL", ""),
+				Timeout:      getEnvIntOrDefault("FASTBANK_TIMEOUT", 30),
+				MaxAttempts:  getEnvIntOrDefault("FASTBANK_MAX_ATTEMPTS", 30),
+				PollInterval: getEnvIntOrDefault("FASTBANK_POLL_INTERVAL", 2),
 			},
 			SolidBank: SolidBankConfig{
-				BaseURL: getEnvOrDefault("SOLIDBANK_BASE_URL", ""),
-				Timeout: getEnvIntOrDefault("SOLIDBANK_TIMEOUT", 30),
+				BaseURL:      getEnvOrDefault("SOLIDBANK_BASE_URL", ""),
+				Timeout:      getEnvIntOrDefault("SOLIDBANK_TIMEOUT", 30),
+				MaxAttempts:  getEnvIntOrDefault("SOLIDBANK_MAX_ATTEMPTS", 30),
+				PollInterval: getEnvIntOrDefault("SOLIDBANK_POLL_INTERVAL", 2),
 			},
 		},
 		Logging: LoggingConfig{

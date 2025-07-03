@@ -1,22 +1,26 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type BankSubmission struct {
-	BankName    string               `json:"bankName"`
-	Status      BankSubmissionStatus `json:"status"`
-	BankID      string               `json:"bankId,omitempty"`
-	SubmittedAt time.Time            `json:"submittedAt"`
-	CompletedAt *time.Time           `json:"completedAt,omitempty"`
-	Error       string               `json:"error,omitempty"`
+	ID           uuid.UUID            `json:"id"`
+	BankName     string               `json:"bankName"`
+	Status       BankSubmissionStatus `json:"status"`
+	BankID       string               `json:"bankId,omitempty"`
+	SubmittedAt  time.Time            `json:"submittedAt"`
+	CompletedAt  *time.Time           `json:"completedAt,omitempty"`
+	Error        string               `json:"error,omitempty"`
+	ErrorMessage *string              `json:"errorMessage,omitempty"`
+	CreatedAt    time.Time            `json:"createdAt"`
 }
 
 type BankSubmissionStatus string
 
 const (
-	BankStatusPending   BankSubmissionStatus = "PENDING"
-	BankStatusSubmitted BankSubmissionStatus = "SUBMITTED"
-	BankStatusSuccess   BankSubmissionStatus = "SUCCESS"
-	BankStatusRejected  BankSubmissionStatus = "REJECTED"
-	BankStatusError     BankSubmissionStatus = "ERROR"
+	SubmissionStatusSuccess BankSubmissionStatus = "SUCCESS"
+	SubmissionStatusFailed  BankSubmissionStatus = "FAILED"
 )

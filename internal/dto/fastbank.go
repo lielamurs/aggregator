@@ -17,9 +17,9 @@ type FastBankApplication struct {
 }
 
 type FastBankOffer struct {
-	MonthlyPaymentAmount *float64 `json:"monthlyPaymentAmount,omitempty"`
-	TotalRepaymentAmount *float64 `json:"totalRepaymentAmount,omitempty"`
-	NumberOfPayments     *int     `json:"numberOfPayments,omitempty"`
-	AnnualPercentageRate *float64 `json:"annualPercentageRate,omitempty"`
-	FirstRepaymentDate   *string  `json:"firstRepaymentDate,omitempty"`
+	MonthlyPaymentAmount float64 `json:"monthlyPaymentAmount"`
+	TotalRepaymentAmount float64 `json:"totalRepaymentAmount"`
+	NumberOfPayments     int     `json:"numberOfPayments"`
+	AnnualPercentageRate float64 `json:"annualPercentageRate"`
+	FirstRepaymentDate   string  `json:"firstRepaymentDate"`
 }
