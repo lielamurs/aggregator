@@ -1,0 +1,89 @@
+meta {
+  name: Get Application Status - Successful Flow
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/applications/{{success_application_id}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isDefined
+  res.body.status: eq "COMPLETED"
+  res.body.offers: isArray
+}
+
+tests {
+  test("Should return 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Should return application details", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a('string');
+    expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+  
+  test("Should have COMPLETED status", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("COMPLETED");
+  });
+  
+  test("Should return offers array", function() {
+    const body = res.getBody();
+    expect(body.offers).to.be.an('array');
+    expect(body.offers.length).to.be.greaterThan(0);
+  });
+  
+  test("Should have at least one approved offer", function() {
+    const body = res.getBody();
+    const approvedOffers = body.offers.filter(offer => offer.status === "APPROVED");
+    expect(approvedOffers.length).to.be.greaterThan(0);
+  });
+  
+  test("Each offer should have proper structure", function() {
+    const body = res.getBody();
+    body.offers.forEach(offer => {
+      expect(offer).to.have.property('bankName');
+      expect(offer.bankName).to.be.a('string');
+      expect(offer).to.have.property('status');
+      expect(offer.status).to.be.oneOf(['APPROVED', 'REJECTED']);
+  
+      if (offer.status === 'APPROVED') {
+        expect(offer).to.have.property('totalRepaymentAmount');
+        expect(offer.totalRepaymentAmount).to.be.a('number');
+        expect(offer.totalRepaymentAmount).to.be.greaterThan(0);
+        expect(offer).to.have.property('annualPercentageRate');
+        expect(offer.annualPercentageRate).to.be.a('number');
+        expect(offer.annualPercentageRate).to.be.greaterThan(0);
+        expect(offer).to.have.property('monthlyPaymentAmount');
+        expect(offer.monthlyPaymentAmount).to.be.a('number');
+        expect(offer.monthlyPaymentAmount).to.be.greaterThan(0);
+      }
+    });
+  });
+  
+  test("Should have offers from expected banks", function() {
+    const body = res.getBody();
+    const bankNames = body.offers.map(offer => offer.bankName);
+    expect(bankNames).to.include.members(['FastBank', 'SolidBank']);
+  });
+  
+  test("Good financial profile should get approved offers", function() {
+    const body = res.getBody();
+    const approvedOffers = body.offers.filter(offer => offer.status === "APPROVED");
+  
+    console.log("Approved offers:", approvedOffers.length);
+    console.log("Total offers:", body.offers.length);
+  
+    expect(approvedOffers.length).to.be.greaterThan(0);
+  });
+}

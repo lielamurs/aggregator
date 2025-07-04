@@ -1,0 +1,54 @@
+meta {
+  name: Validation Errors
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/applications
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "phone": "invalid-phone",
+    "email": "not-an-email",
+    "monthlyIncome": -100,
+    "monthlyExpenses": -50,
+    "maritalStatus": "INVALID_STATUS",
+    "agreeToBeScored": false,
+    "amount": -1000,
+    "dependents": -5
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error: isDefined
+  res.body.message: isDefined
+  res.body.code: isDefined
+}
+
+tests {
+  test("Should return 400 Bad Request", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+  
+  test("Should return error response", function() {
+    const body = res.getBody();
+    expect(body.error).to.be.a('string');
+    expect(body.message).to.be.a('string');
+    expect(body.code).to.be.a('string');
+  });
+  
+  test("Should indicate validation errors", function() {
+    const body = res.getBody();
+    expect(body.code).to.equal('VALIDATION_FAILED');
+  });
+}

@@ -1,0 +1,66 @@
+meta {
+  name: Submit Application - Successful Flow
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/applications
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "phone": "+37127555000",
+    "email": "success.candidate@example.com",
+    "monthlyIncome": 5000,
+    "monthlyExpenses": 1500,
+    "maritalStatus": "MARRIED",
+    "agreeToBeScored": true,
+    "amount": 3000,
+    "dependents": 1
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+  res.body.status: eq "PENDING"
+}
+
+tests {
+  test("Should return 201 OK", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Should return valid application ID", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a('string');
+    expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+  
+  test("Should have PENDING status initially", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("PENDING");
+  });
+  
+  test("Should return minimal response for async processing", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('status');
+    expect(body.status).to.equal("PENDING");
+    expect(body).to.not.have.property('offers');
+  });
+  
+  test("Should store application ID for status check", function() {
+    const body = res.getBody();
+    bru.setEnvVar("success_application_id", body.id);
+    console.log("Stored successful application ID:", body.id);
+  });
+}

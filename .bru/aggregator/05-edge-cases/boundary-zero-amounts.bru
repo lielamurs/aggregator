@@ -1,0 +1,55 @@
+meta {
+  name: Boundary Zero Amounts
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/applications
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "phone": "+37127777777",
+    "email": "zero.amounts@example.com",
+    "monthlyIncome": 0,
+    "monthlyExpenses": 0,
+    "maritalStatus": "SINGLE",
+    "agreeToBeScored": true,
+    "amount": 0,
+    "dependents": 0
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error: isDefined
+  res.body.message: isDefined
+  res.body.code: isDefined
+}
+
+tests {
+  test("Should return 400 Bad Request", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+  
+  test("Should return error response", function() {
+    const body = res.getBody();
+    expect(body.error).to.be.a('string');
+    expect(body.message).to.be.a('string');
+    expect(body.code).to.be.a('string');
+  });
+  
+  test("Should indicate zero amounts validation error", function() {
+    const body = res.getBody();
+    expect(body.code).to.equal('VALIDATION_FAILED');
+    expect(body.message.toLowerCase()).to.match(/amount|income/);
+  });
+}
