@@ -29,7 +29,7 @@ func (s *fastBankService) GetBankName() string {
 	return "FastBank"
 }
 
-func (s *fastBankService) SubmitApplication(ctx context.Context, req dto.ApplicationRequest) (*dto.Offer, error) {
+func (s *fastBankService) SubmitApplication(ctx context.Context, req dto.ApplicationRequest) (*dto.BankSubmissionResponse, error) {
 	logger := s.logger.WithFields(logrus.Fields{
 		"bank":   "FastBank",
 		"phone":  req.Phone,
@@ -51,19 +51,37 @@ func (s *fastBankService) SubmitApplication(ctx context.Context, req dto.Applica
 		"status":         fastBankApp.Status,
 	}).Info("FastBank application submitted")
 
+	return &dto.BankSubmissionResponse{
+		ID:     fastBankApp.ID,
+		Status: fastBankApp.Status,
+	}, nil
+}
+
+func (s *fastBankService) GetOffer(ctx context.Context, bankID string) (*dto.Offer, error) {
+	logger := s.logger.WithFields(logrus.Fields{
+		"bank":    "FastBank",
+		"bank_id": bankID,
+	})
+
+	pollURL := fmt.Sprintf("%s/applications/%s", s.config.BaseURL, bankID)
+	var fastBankApp dto.FastBankApplication
+
+	err := s.httpClient.GetJSON(ctx, pollURL, &fastBankApp)
+	if err != nil {
+		logger.WithError(err).Error("Failed to get FastBank application")
+		return nil, fmt.Errorf("FastBank get application failed: %w", err)
+	}
+
+	logger.WithFields(logrus.Fields{
+		"application_id": fastBankApp.ID,
+		"status":         fastBankApp.Status,
+	}).Info("FastBank application status retrieved")
+
 	if fastBankApp.Status == "PROCESSED" {
 		return s.handleProcessedApplication(fastBankApp, logger, s.GetBankName())
 	}
 
-	pollURL := fmt.Sprintf("%s/applications/%s", s.config.BaseURL, fastBankApp.ID)
-	offer, err := s.pollForCompletion(ctx, pollURL, logger)
-	if err != nil {
-		logger.WithError(err).Error("Failed to poll FastBank application")
-		return nil, fmt.Errorf("FastBank polling failed: %w", err)
-	}
-
-	logger.WithField("offer_id", offer.ID).Info("FastBank application completed successfully")
-	return offer, nil
+	return nil, nil
 }
 
 func (s *fastBankService) handleProcessedApplication(fastBankApp dto.FastBankApplication, logger *logrus.Entry, bankName string) (*dto.Offer, error) {
@@ -78,34 +96,4 @@ func (s *fastBankService) handleProcessedApplication(fastBankApp dto.FastBankApp
 		return nil, fmt.Errorf("failed to map FastBank application")
 	}
 	return offer, nil
-}
-
-func (s *fastBankService) pollForCompletion(ctx context.Context, url string, logger *logrus.Entry) (*dto.Offer, error) {
-	maxAttempts := s.config.MaxAttempts
-	pollInterval := time.Duration(s.config.PollInterval) * time.Second
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		logger.WithField("attempt", attempt).Debug("Polling FastBank application status")
-
-		var fastBankApp dto.FastBankApplication
-		err := s.httpClient.GetJSON(ctx, url, &fastBankApp)
-		if err != nil {
-			logger.WithError(err).WithField("attempt", attempt).Error("Failed to poll FastBank application")
-			return nil, fmt.Errorf("polling failed: %w", err)
-		}
-
-		if fastBankApp.Status == "PROCESSED" {
-			return s.handleProcessedApplication(fastBankApp, logger, s.GetBankName())
-		}
-
-		if attempt < maxAttempts {
-			select {
-			case <-ctx.Done():
-				return nil, fmt.Errorf("context cancelled while polling: %w", ctx.Err())
-			case <-time.After(pollInterval):
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("FastBank application did not complete within timeout period")
 }

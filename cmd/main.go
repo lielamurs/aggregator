@@ -80,6 +80,24 @@ func main() {
 	)
 	logger.Info("Application service initialized")
 
+	// Initialize submission service
+	submissionService := services.NewSubmissionService(
+		applicationsRepo,
+		offersRepo,
+		bankSubmissionsRepo,
+		bankServices,
+		logger,
+	)
+	logger.Info("Submission service initialized")
+
+	// Initialize submission processor
+	submissionProcessor := services.NewSubmissionProcessor(
+		submissionService,
+		cfg.SubmissionProcessor,
+		logger,
+	)
+	logger.Info("Submission processor initialized")
+
 	// Initialize handlers
 	applicationHandler := handlers.NewApplicationHandler(applicationService, logger)
 	logger.Info("HTTP handlers initialized")
@@ -109,12 +127,22 @@ func main() {
 		}
 	}()
 
+	// Start submission processor
+	if err := submissionProcessor.Start(); err != nil {
+		logger.WithError(err).Fatal("Failed to start submission processor")
+	}
+
 	// Wait for interrupt signal to gracefully shutdown the server
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down server...")
+
+	// Stop submission processor
+	if err := submissionProcessor.Stop(); err != nil {
+		logger.WithError(err).Error("Failed to stop submission processor")
+	}
 
 	// Give the server 30 seconds to shutdown gracefully
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -56,7 +56,8 @@ type ErrorResponse struct {
 }
 
 type BankResult struct {
-	BankName string
-	Offer    *Offer
-	Err      error
+	BankName     string
+	SubmissionID string
+	Offer        *Offer
+	Err          error
 }

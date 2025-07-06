@@ -107,39 +107,23 @@ func (s *applicationService) processApplication(ctx context.Context, customerApp
 		close(results)
 	}()
 
-	allSuccessful := true
 	for result := range results {
 		if result.Err != nil {
 			logger.WithError(result.Err).WithField("bank", result.BankName).Error("Bank submission failed")
-			allSuccessful = false
 
-			if err := s.saveBankSubmission(ctx, customerApp.ID, result.BankName, dto.SubmissionStatusFailed, result.Err); err != nil {
+			if err := s.saveBankSubmission(ctx, customerApp.ID, result.BankName, dto.SubmissionStatusFailed, "", result.Err); err != nil {
 				logger.WithError(err).WithField("bank", result.BankName).Error("Failed to save bank submission")
 			}
 		} else {
 			logger.WithField("bank", result.BankName).Info("Bank submission successful")
 
-			if err := s.saveBankSubmission(ctx, customerApp.ID, result.BankName, dto.SubmissionStatusSuccess, nil); err != nil {
+			if err := s.saveBankSubmission(ctx, customerApp.ID, result.BankName, dto.SubmissionStatusDraft, result.SubmissionID, nil); err != nil {
 				logger.WithError(err).WithField("bank", result.BankName).Error("Failed to save bank submission")
-			}
-
-			if err := s.saveOffer(ctx, customerApp.ID, result.Offer); err != nil {
-				logger.WithError(err).WithField("bank", result.BankName).Error("Failed to save offer")
 			}
 		}
 	}
 
-	customerApp.Status = dto.StatusCompleted
-	if allSuccessful {
-		logger.Info("Application processing completed successfully")
-	} else {
-		logger.Info("Application processing completed with some bank failures")
-	}
-
-	customerApp.UpdatedAt = time.Now()
-	if err := s.updateApplication(ctx, customerApp); err != nil {
-		logger.WithError(err).Error("Failed to update final application status")
-	}
+	logger.Info("Application processing completed - bank submissions saved as DRAFT")
 }
 
 func (s *applicationService) submitToBankAsync(ctx context.Context, bank BankService, customerApp *dto.CustomerApplication, results chan<- dto.BankResult) {
@@ -150,7 +134,7 @@ func (s *applicationService) submitToBankAsync(ctx context.Context, bank BankSer
 
 	logger.Info("Submitting application to bank")
 
-	offer, err := bank.SubmitApplication(ctx, customerApp.CustomerData)
+	response, err := bank.SubmitApplication(ctx, customerApp.CustomerData)
 	if err != nil {
 		logger.WithError(err).Error("Bank submission failed")
 		results <- dto.BankResult{
@@ -160,10 +144,10 @@ func (s *applicationService) submitToBankAsync(ctx context.Context, bank BankSer
 		return
 	}
 
-	logger.Info("Bank submission successful")
+	logger.WithField("submission_id", response.ID).Info("Bank submission successful")
 	results <- dto.BankResult{
-		BankName: bank.GetBankName(),
-		Offer:    offer,
+		BankName:     bank.GetBankName(),
+		SubmissionID: response.ID,
 	}
 }
 
@@ -180,11 +164,7 @@ func (s *applicationService) updateApplication(ctx context.Context, customerApp 
 	return s.applicationsRepo.Update(ctx, application)
 }
 
-func (s *applicationService) saveOffer(ctx context.Context, applicationID uuid.UUID, bankOffer *dto.Offer) error {
-	if bankOffer == nil {
-		return fmt.Errorf("offer cannot be nil")
-	}
-
+func (s *applicationService) saveBankSubmission(ctx context.Context, applicationID uuid.UUID, bankName string, status dto.BankSubmissionStatus, bankID string, submissionErr error) error {
 	exists, err := s.applicationsRepo.Exists(ctx, applicationID)
 	if err != nil {
 		return fmt.Errorf("failed to verify application exists: %w", err)
@@ -194,32 +174,17 @@ func (s *applicationService) saveOffer(ctx context.Context, applicationID uuid.U
 		return fmt.Errorf("application with ID %s not found", applicationID)
 	}
 
-	bankOffer.ID = uuid.New()
-
-	offer := mappers.ToOfferModel(bankOffer)
-	if offer == nil {
-		return fmt.Errorf("failed to convert offer to model")
-	}
-
-	offer.ApplicationID = applicationID
-	return s.offersRepo.Create(ctx, offer)
-}
-
-func (s *applicationService) saveBankSubmission(ctx context.Context, applicationID uuid.UUID, bankName string, status dto.BankSubmissionStatus, submissionErr error) error {
-	exists, err := s.applicationsRepo.Exists(ctx, applicationID)
-	if err != nil {
-		return fmt.Errorf("failed to verify application exists: %w", err)
-	}
-
-	if !exists {
-		return fmt.Errorf("application with ID %s not found", applicationID)
-	}
-
+	now := time.Now()
 	bankSubmission := &dto.BankSubmission{
 		ID:        uuid.New(),
 		BankName:  bankName,
 		Status:    status,
-		CreatedAt: time.Now(),
+		BankID:    bankID,
+		CreatedAt: now,
+	}
+
+	if status == dto.SubmissionStatusDraft {
+		bankSubmission.SubmittedAt = now
 	}
 
 	if submissionErr != nil {

@@ -20,3 +20,7 @@ func NewBankSubmissionsRepository(db *gorm.DB) *BankSubmissionsRepository {
 func (r *BankSubmissionsRepository) Create(ctx context.Context, submission *models.BankSubmission) error {
 	return r.db.WithContext(ctx).Create(submission).Error
 }
+
+func (r *BankSubmissionsRepository) Update(ctx context.Context, submission *models.BankSubmission) error {
+	return r.db.WithContext(ctx).Save(submission).Error
+}

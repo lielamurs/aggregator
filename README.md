@@ -122,6 +122,9 @@ Applications are processed asynchronously:
 
 For a production ready solution:
 - **Code quality**: Clean up handler and improve error handling.
-- **Scalability**: Bank offer processing would benefit from a job queue and a smarter retry mechanism.
 - **Monitoring**: Set up monitoring tools to track system performance and detect issues early. Add correlation IDs for tracing.
 - **Tests**: Expand API tests to cover other cases.
+
+## Note 06.07.2025
+
+Added a proper submission processing flow that runs every 5 minutes by default.

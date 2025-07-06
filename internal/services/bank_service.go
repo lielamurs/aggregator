@@ -8,5 +8,6 @@ import (
 
 type BankService interface {
 	GetBankName() string
-	SubmitApplication(ctx context.Context, req dto.ApplicationRequest) (*dto.Offer, error)
+	SubmitApplication(ctx context.Context, req dto.ApplicationRequest) (*dto.BankSubmissionResponse, error)
+	GetOffer(ctx context.Context, bankID string) (*dto.Offer, error)
 }

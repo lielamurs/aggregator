@@ -43,3 +43,12 @@ func (r *ApplicationsRepository) Exists(ctx context.Context, id uuid.UUID) (bool
 	}
 	return count > 0, nil
 }
+
+func (r *ApplicationsRepository) GetProcessingApplicationsWithBankSubmissions(ctx context.Context) ([]models.Application, error) {
+	var apps []models.Application
+	err := r.db.WithContext(ctx).Preload("BankSubmissions").Where("status = ?", "PROCESSING").Find(&apps).Error
+	if err != nil {
+		return nil, err
+	}
+	return apps, nil
+}
